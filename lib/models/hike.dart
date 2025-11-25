@@ -12,6 +12,8 @@ class Hike {
   final String? imagePath; // added
   final double? latitude; // added
   final double? longitude; // added
+  final String? startPlaceName; // Place name for directions
+  final String? endPlaceName; // Place name for directions
 
   Hike({
     this.id,
@@ -27,6 +29,8 @@ class Hike {
     this.imagePath, // added
     this.latitude, // added
     this.longitude, // added
+    this.startPlaceName,
+    this.endPlaceName,
   });
 
   Map<String, dynamic> toMap() {
@@ -44,6 +48,8 @@ class Hike {
       'imagePath': imagePath,  // added
       'latitude': latitude,  // added
       'longitude': longitude,  // added
+      'startPlaceName': startPlaceName,
+      'endPlaceName': endPlaceName,
     };
   }
 
@@ -62,6 +68,8 @@ class Hike {
       imagePath: map['imagePath'], // added
       latitude: map['latitude'], // added
       longitude: map['longitude'], // added
+      startPlaceName: map['startPlaceName'],
+      endPlaceName: map['endPlaceName'],
     );
   }
 
@@ -79,6 +87,8 @@ class Hike {
     String? imagePath, // added
     double? latitude, // added
     double? longitude, // added
+    String? startPlaceName,
+    String? endPlaceName,
   }) {
     return Hike(
       id: id ?? this.id,
@@ -94,11 +104,19 @@ class Hike {
       imagePath: imagePath ?? this.imagePath, // added
       latitude: latitude ?? this.latitude, // added
       longitude: longitude ?? this.longitude, // added
+      startPlaceName: startPlaceName ?? this.startPlaceName,
+      endPlaceName: endPlaceName ?? this.endPlaceName,
     );
   }
 
   bool get hasCoordinates {
     return latitude != null && longitude != null;
+  }
+
+  /// Check if hike has route information for directions
+  bool get hasRouteInfo {
+    return startPlaceName != null && startPlaceName!.isNotEmpty &&
+           endPlaceName != null && endPlaceName!.isNotEmpty;
   }
 
   String get coordinatesString => hasCoordinates

@@ -33,7 +33,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -53,9 +53,11 @@ class DatabaseHelper {
         description TEXT,
         estimatedDuration TEXT,
         equipment TEXT,
-        bannerImagePath TEXT
+        bannerImagePath TEXT,
         latitude REAL,
-        longitude REAL
+        longitude REAL,
+        startPlaceName TEXT,
+        endPlaceName TEXT
       )
     ''');
 
@@ -277,6 +279,11 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE hikes ADD COLUMN longitude REAL');
       await db.execute('ALTER TABLE observations ADD COLUMN latitude REAL');
       await db.execute('ALTER TABLE observations ADD COLUMN longitude REAL');
+    }
+    if (oldVersion < 4) {
+      // Add place name columns for Google Maps directions
+      await db.execute('ALTER TABLE hikes ADD COLUMN startPlaceName TEXT');
+      await db.execute('ALTER TABLE hikes ADD COLUMN endPlaceName TEXT');
     }
   }
 

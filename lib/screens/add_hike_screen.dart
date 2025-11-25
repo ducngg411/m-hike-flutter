@@ -325,6 +325,8 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
         imagePath: _imagePath,
         latitude: _latitude,
         longitude: _longitude,
+        startPlaceName: _startPointController.text.trim(),
+        endPlaceName: _endPointController.text.trim(),
       );
 
       final confirmed = await _showConfirmationDialog(hike);
