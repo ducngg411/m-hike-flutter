@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 import 'welcome_screen.dart';
+import 'statistics_screen.dart'; // THÊM import
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -103,6 +104,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
+          // THÊM Statistics menu item
+          ListTile(
+            leading: const Icon(Icons.analytics_outlined, color: Colors.blue),
+            title: const Text('Statistics'),
+            subtitle: const Text('View your hiking statistics and charts'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StatisticsScreen(),
+                ),
+              );
+            },
+          ),
+
+          const Divider(height: 1),
+
           ListTile(
             leading: const Icon(Icons.wb_sunny_outlined),
             title: const Text('View Welcome Screen'),
@@ -167,7 +186,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: EdgeInsets.all(24.0),
             child: Text(
               'M-Hike - Your Hiking Companion\n'
-                  'COMP1786 Coursework',
+                  'COMP1786 Coursework\n\n'
+                  'Features:\n'
+                  '• GPS Location Tracking\n'
+                  '• Photo Integration\n'
+                  '• Advanced Search\n'
+                  '• Statistics & Analytics\n'
+                  '• Social Sharing',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,

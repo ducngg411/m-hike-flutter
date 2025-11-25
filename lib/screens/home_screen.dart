@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/hike.dart';
+import '../services/share_service.dart';
 import 'add_hike_screen.dart';
 import 'hike_details_screen.dart';
 
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Hike> filteredHikes = [];
   bool isLoading = false;
   SortFilter currentFilter = SortFilter.newest;
+  Map<int, int> observationCounts = {}; // Map hikeId -> observation count
 
   @override
   void initState() {
@@ -36,8 +38,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadHikes() async {
     setState(() => isLoading = true);
     final data = await DatabaseHelper.instance.getAllHikes();
+
+    // Load observation counts for each hike
+    final Map<int, int> counts = {};
+    for (var hike in data) {
+      if (hike.id != null) {
+        final observations = await DatabaseHelper.instance.getObservationsForHike(hike.id!);
+        counts[hike.id!] = observations.length;
+      }
+    }
+
     setState(() {
       hikes = data;
+      observationCounts = counts;
       _applyFilter();
       isLoading = false;
     });
@@ -436,6 +449,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHikeCard(Hike hike) {
+    final observationCount = observationCounts[hike.id] ?? 0;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
@@ -450,14 +465,19 @@ class _HomeScreenState extends State<HomeScreen> {
           );
           _loadHikes();
         },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        onLongPress: () {
+          _showQuickActions(hike);
+        },
+        child: Stack(
           children: [
-            // Banner Image
-            if (hike.imagePath != null && hike.imagePath!.isNotEmpty)
-              _buildBannerImage(hike.imagePath!)
-            else
-              _buildPlaceholderBanner(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Banner Image
+                if (hike.imagePath != null && hike.imagePath!.isNotEmpty)
+                  _buildBannerImage(hike.imagePath!)
+                else
+                  _buildPlaceholderBanner(),
 
             // Content
             Padding(
@@ -506,34 +526,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 8),
 
                   // Stats Row
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _buildStatChip(
                         Icons.straighten,
                         '${hike.length} km',
                         Colors.blue,
                       ),
-                      const SizedBox(width: 8),
                       _buildStatChip(
                         _getDifficultyIcon(hike.difficulty),
                         hike.difficulty,
                         _getDifficultyColor(hike.difficulty),
                       ),
-                      const SizedBox(width: 8),
                       _buildStatChip(
                         Icons.local_parking,
                         hike.parkingAvailable ? 'Parking' : 'No Parking',
                         hike.parkingAvailable ? Colors.green : Colors.red,
                       ),
-                      // THÊM GPS badge
-                      if (hike.hasCoordinates) ...[
-                        const SizedBox(width: 8),
+                      // GPS badge
+                      if (hike.hasCoordinates)
                         _buildStatChip(
                           Icons.gps_fixed,
                           'GPS',
                           Colors.purple,
                         ),
-                      ],
                     ],
                   ),
                 ],
@@ -541,6 +559,54 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+
+        // Ribbon badge for observation count
+        Positioned(
+          top: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.teal[600]!,
+                  Colors.teal[400]!,
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.note_alt,
+                  size: 14,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$observationCount ${observationCount == 1 ? 'observation' : 'observations'}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
       ),
     );
   }
@@ -647,5 +713,55 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return Colors.grey;
     }
+  }
+
+  void _showQuickActions(Hike hike) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.share, color: Colors.blue),
+              title: const Text('Share'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.shareHikeWithImage(hike, hike.imagePath);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit, color: Colors.green),
+              title: const Text('Edit'),
+              onTap: () async {
+                Navigator.pop(context);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddHikeScreen(hike: hike),
+                  ),
+                );
+                _loadHikes();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Delete'),
+              onTap: () {
+                Navigator.pop(context);
+                _deleteHike(hike.id!);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.cancel, color: Colors.grey),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

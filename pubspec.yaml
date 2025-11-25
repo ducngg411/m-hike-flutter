@@ -38,6 +38,11 @@ dependencies:
   geocoding:
   permission_handler:
 
+  # Share & Chart
+  share_plus:
+  fl_chart:
+  screenshot: 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

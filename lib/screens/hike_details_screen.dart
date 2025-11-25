@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../database/database_helper.dart';
 import '../models/hike.dart';
 import '../models/observation.dart';
@@ -8,6 +9,8 @@ import 'add_hike_screen.dart';
 import 'add_observation_screen.dart';
 import '../widgets/image_preview_widget.dart';
 import '../services/location_service.dart';
+import '../services/share_service.dart';
+
 
 class HikeDetailsScreen extends StatefulWidget {
   final Hike hike;
@@ -96,6 +99,62 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
     );
   }
 
+  void _showShareOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.text_fields, color: Colors.blue),
+              title: const Text('Share as Text'),
+              subtitle: const Text('Share hike details with observations'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.shareHikeText(_currentHike, observations: _observations);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.image, color: Colors.green),
+              title: const Text('Share with Image'),
+              subtitle: const Text('Include banner image'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.shareHikeWithImage(
+                  _currentHike,
+                  _currentHike.imagePath,
+                  observations: _observations,
+                );
+              },
+            ),
+            if (_currentHike.hasCoordinates)
+              ListTile(
+                leading: const Icon(Icons.map, color: Colors.red),
+                title: const Text('Share Location'),
+                subtitle: const Text('Open in Google Maps'),
+                onTap: () {
+                  Navigator.pop(context);
+                  final url = 'https://maps.google.com/?q=${_currentHike.latitude},${_currentHike.longitude}';
+                  Share.share(
+                    '📍 ${_currentHike.name}\n${_currentHike.location}\n\n$url',
+                    subject: 'Hike Location',
+                  );
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.cancel, color: Colors.grey),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,6 +168,13 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
               background: _buildHeroImage(),
             ),
             actions: [
+              // Share Button
+              IconButton(
+                icon: const Icon(Icons.share),
+                onPressed: () => _showShareOptions(),
+              ),
+
+              // Edit Button
               IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: _editHike,
@@ -134,6 +200,7 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const Divider(),
+                        _buildDetailRow(Icons.title, 'Hike Name', _currentHike.name),
                         _buildDetailRow(Icons.location_on, 'Location', _currentHike.location),
 
                         // THÊM GPS coordinates với copy button
@@ -519,6 +586,16 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    // Share button
+                    TextButton.icon(
+                      onPressed: () {
+                        ShareService.shareObservation(obs, _currentHike.name);
+                      },
+                      icon: const Icon(Icons.share, size: 18),
+                      label: const Text('Share'),
+                    ),
+
+                    // Edit button
                     TextButton.icon(
                       onPressed: () async {
                         await Navigator.push(
