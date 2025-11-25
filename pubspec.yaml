@@ -37,11 +37,13 @@ dependencies:
   geolocator:
   geocoding:
   permission_handler:
+  vietmap_flutter_gl:
+  http:
 
   # Share & Chart
   share_plus:
   fl_chart:
-  screenshot: 
+  screenshot:
 
 dev_dependencies:
   flutter_test:

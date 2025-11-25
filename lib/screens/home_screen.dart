@@ -400,15 +400,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddHikeScreen()),
-          );
-          _loadHikes();
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'add',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AddHikeScreen()),
+              );
+              _loadHikes();
+            },
+            tooltip: 'Add Hike',
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
