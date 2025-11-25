@@ -12,6 +12,8 @@ class Hike {
   final String? imagePath; // added
   final double? latitude; // added
   final double? longitude; // added
+  final String? startPlaceName; // Tên điểm bắt đầu
+  final String? endPlaceName; // Tên điểm kết thúc
 
   Hike({
     this.id,
@@ -27,6 +29,8 @@ class Hike {
     this.imagePath, // added
     this.latitude, // added
     this.longitude, // added
+    this.startPlaceName, // added
+    this.endPlaceName, // added
   });
 
   Map<String, dynamic> toMap() {
@@ -40,6 +44,8 @@ class Hike {
       'difficulty': difficulty,
       'description': description,
       'estimatedDuration': estimatedDuration,
+      'startPlaceName': startPlaceName,  // added
+      'endPlaceName': endPlaceName,  // added
       'equipment': equipment,
       'imagePath': imagePath,  // added
       'latitude': latitude,  // added
@@ -56,6 +62,8 @@ class Hike {
       parkingAvailable: map['parkingAvailable'] == 1,
       length: map['length'],
       difficulty: map['difficulty'],
+      startPlaceName: map['startPlaceName'], // added
+      endPlaceName: map['endPlaceName'], // added
       description: map['description'],
       estimatedDuration: map['estimatedDuration'],
       equipment: map['equipment'],
@@ -71,6 +79,8 @@ class Hike {
     String? location,
     String? date,
     bool? parkingAvailable,
+    String? startPlaceName, // added
+    String? endPlaceName, // added
     double? length,
     String? difficulty,
     String? description,
@@ -86,6 +96,8 @@ class Hike {
       location: location ?? this.location,
       date: date ?? this.date,
       parkingAvailable: parkingAvailable ?? this.parkingAvailable,
+      startPlaceName: startPlaceName ?? this.startPlaceName, // added
+      endPlaceName: endPlaceName ?? this.endPlaceName, // added
       length: length ?? this.length,
       difficulty: difficulty ?? this.difficulty,
       description: description ?? this.description,
@@ -97,11 +109,17 @@ class Hike {
     );
   }
 
+  // Kiểm tra xem có thông tin route không (có cả start và end place names)
+  bool get hasRouteInfo {
+    return startPlaceName != null && startPlaceName!.isNotEmpty &&
+           endPlaceName != null && endPlaceName!.isNotEmpty;
+  }
+
   bool get hasCoordinates {
     return latitude != null && longitude != null;
   }
 
   String get coordinatesString => hasCoordinates
-      ? '${latitude!.toStringAsFixed(6)}, ${longitude!.toStringAsFixed(6)})'
+      ? '${latitude!.toStringAsFixed(6)}, ${longitude!.toStringAsFixed(6)}'
       : 'No coordinates available';
 }

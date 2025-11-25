@@ -10,6 +10,7 @@ import 'add_observation_screen.dart';
 import '../widgets/image_preview_widget.dart';
 import '../services/location_service.dart';
 import '../services/share_service.dart';
+import '../services/maps_service.dart';
 
 
 class HikeDetailsScreen extends StatefulWidget {
@@ -275,6 +276,32 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
                           _buildDetailRow(Icons.timer, 'Duration', _currentHike.estimatedDuration!),
                         if (_currentHike.equipment != null)
                           _buildDetailRow(Icons.backpack, 'Equipment', _currentHike.equipment!),
+
+                        // Directions Button
+                        if (_currentHike.hasRouteInfo) ...[
+                          const SizedBox(height: 16),
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                MapsService.openDirections(
+                                  context: context,
+                                  startPlaceName: _currentHike.startPlaceName!,
+                                  endPlaceName: _currentHike.endPlaceName!,
+                                );
+                              },
+                              icon: const Icon(Icons.directions),
+                              label: const Text('Get Directions'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

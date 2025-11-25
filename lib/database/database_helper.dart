@@ -33,10 +33,18 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 4) {
+      // Add place name columns
+      await db.execute('ALTER TABLE hikes ADD COLUMN startPlaceName TEXT');
+      await db.execute('ALTER TABLE hikes ADD COLUMN endPlaceName TEXT');
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -53,9 +61,11 @@ class DatabaseHelper {
         description TEXT,
         estimatedDuration TEXT,
         equipment TEXT,
-        bannerImagePath TEXT
+        imagePath TEXT,
         latitude REAL,
-        longitude REAL
+        longitude REAL,
+        startPlaceName TEXT,
+        endPlaceName TEXT
       )
     ''');
 
@@ -264,20 +274,6 @@ class DatabaseHelper {
         'SELECT DISTINCT difficulty FROM hikes ORDER BY difficulty'
     );
     return result.map((row) => row['difficulty'] as String).toList();
-  }
-
-  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Add imagePath column to existing tables
-      await db.execute('ALTER TABLE hikes ADD COLUMN imagePath TEXT');
-      await db.execute('ALTER TABLE observations ADD COLUMN imagePath TEXT');
-    }
-    if (oldVersion < 3) {
-      await db.execute('ALTER TABLE hikes ADD COLUMN latitude REAL');
-      await db.execute('ALTER TABLE hikes ADD COLUMN longitude REAL');
-      await db.execute('ALTER TABLE observations ADD COLUMN latitude REAL');
-      await db.execute('ALTER TABLE observations ADD COLUMN longitude REAL');
-    }
   }
 
   Future close() async {
