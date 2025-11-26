@@ -7,6 +7,7 @@ class VietMapService {
   static const String autocompleteUrl = 'https://maps.vietmap.vn/api/autocomplete/v3';
   static const String placeUrl = 'https://maps.vietmap.vn/api/place/v3';
   static const String routeUrl = 'https://maps.vietmap.vn/api/route/v3';
+  static const String reverseUrl = 'https://maps.vietmap.vn/api/reverse/v3';
 
   /// Search for places using Autocomplete API v3
   /// Returns list with ref_id for later use with Place API
@@ -98,6 +99,69 @@ class VietMapService {
     } catch (e) {
       print('Error calculating route: $e');
       return null;
+    }
+  }
+
+  /// Reverse Geocoding - Get address from GPS coordinates using Reverse API v3.0
+  /// Returns address information from latitude and longitude
+  static Future<ReverseGeocodeResult?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '$reverseUrl?apikey=$apiKey&lat=$latitude&lng=$longitude'
+      );
+
+      print('Reverse Geocoding API URL: $url'); // Debug log
+
+      final response = await http.get(url);
+
+      print('Reverse API Response status: ${response.statusCode}'); // Debug log
+      print('Reverse API Response body: ${response.body}'); // Debug log
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // VietMap Reverse API v3.0 returns an ARRAY of results
+        // We need to take the first element
+        if (data is List && data.isNotEmpty) {
+          return ReverseGeocodeResult.fromJson(data[0] as Map<String, dynamic>);
+        }
+
+        // Fallback if response format is different
+        if (data is Map) {
+          return ReverseGeocodeResult.fromJson(data as Map<String, dynamic>);
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error reverse geocoding: $e');
+      return null;
+    }
+  }
+
+  /// Get formatted address string from GPS coordinates
+  /// Returns a readable address or coordinates if no address found
+  static Future<String> getAddressFromCoordinates({
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final result = await reverseGeocode(
+        latitude: latitude,
+        longitude: longitude,
+      );
+
+      if (result != null && result.display.isNotEmpty) {
+        return result.display;
+      }
+
+      // Fallback to coordinates if no address found
+      return 'Lat: ${latitude.toStringAsFixed(6)}, Lng: ${longitude.toStringAsFixed(6)}';
+    } catch (e) {
+      print('Error getting address: $e');
+      return 'Lat: ${latitude.toStringAsFixed(6)}, Lng: ${longitude.toStringAsFixed(6)}';
     }
   }
 }
@@ -265,6 +329,80 @@ class RouteInstruction {
       time: json['time'] ?? 0,
       streetName: json['street_name']?.toString(),
     );
+  }
+}
+
+/// Model for reverse geocoding result from Reverse API v3.0
+class ReverseGeocodeResult {
+  final String display;
+  final String name;
+  final String? hsNum;
+  final String? street;
+  final String address;
+  final int? cityId;
+  final String? city;
+  final int? districtId;
+  final String? district;
+  final int? wardId;
+  final String? ward;
+  final double lat;
+  final double lng;
+  final double distance;
+
+  ReverseGeocodeResult({
+    required this.display,
+    required this.name,
+    this.hsNum,
+    this.street,
+    required this.address,
+    this.cityId,
+    this.city,
+    this.districtId,
+    this.district,
+    this.wardId,
+    this.ward,
+    required this.lat,
+    required this.lng,
+    required this.distance,
+  });
+
+  factory ReverseGeocodeResult.fromJson(Map<String, dynamic> json) {
+    return ReverseGeocodeResult(
+      display: json['display'] ?? json['address'] ?? '',
+      name: json['name'] ?? '',
+      hsNum: json['hs_num']?.toString(),
+      street: json['street']?.toString(),
+      address: json['address'] ?? '',
+      cityId: json['city_id'] as int?,
+      city: json['city']?.toString(),
+      districtId: json['district_id'] as int?,
+      district: json['district']?.toString(),
+      wardId: json['ward_id'] as int?,
+      ward: json['ward']?.toString(),
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+      distance: (json['distance'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  /// Get a short address description
+  String get shortAddress {
+    List<String> parts = [];
+
+    if (street != null && street!.isNotEmpty) {
+      parts.add(street!);
+    }
+    if (ward != null && ward!.isNotEmpty) {
+      parts.add(ward!);
+    }
+    if (district != null && district!.isNotEmpty) {
+      parts.add(district!);
+    }
+    if (city != null && city!.isNotEmpty) {
+      parts.add(city!);
+    }
+
+    return parts.isNotEmpty ? parts.join(', ') : display;
   }
 }
 

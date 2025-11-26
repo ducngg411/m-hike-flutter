@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:geolocator/geolocator.dart';
 import '../database/database_helper.dart';
 import '../models/hike.dart';
 import '../utils/image_helper.dart';
 import '../widgets/image_preview_widget.dart';
 import '../services/location_service.dart';
 import '../services/vietmap_service.dart';
-import '../widgets/location_autocomplete_field.dart';
 
 class AddHikeScreen extends StatefulWidget {
   final Hike? hike;
@@ -269,14 +267,405 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
     }
   }
 
-  // Clear route planner
-  void _clearRoutePlanner() {
-    setState(() {
-      _selectedStart = null;
-      _selectedEnd = null;
-      _startSuggestions = [];
-      _endSuggestions = [];
-    });
+  // Show options when location is not found
+  Future<void> _showLocationNotFoundOptions({required bool isStartPoint}) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[300]!),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.help_outline,
+                      color: Colors.blue[700],
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Không tìm thấy địa chỉ?',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Option 1: Use Current GPS Location
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.green,
+                  child: Icon(Icons.my_location, color: Colors.white),
+                ),
+                title: const Text('Dùng vị trí GPS hiện tại'),
+                subtitle: const Text('Lấy tọa độ từ thiết bị của bạn'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _useCurrentGPSLocation(isStartPoint: isStartPoint);
+                },
+              ),
+
+              // Option 2: Enter Custom Name
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: Icon(Icons.edit_location_alt, color: Colors.white),
+                ),
+                title: const Text('Nhập tên địa điểm tùy chỉnh'),
+                subtitle: const Text('Tự đặt tên cho địa điểm'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _enterCustomLocationName(isStartPoint: isStartPoint);
+                },
+              ),
+
+              // Option 3: Get Address from GPS Coordinates
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.orange,
+                  child: Icon(Icons.location_searching, color: Colors.white),
+                ),
+                title: const Text('Tìm địa chỉ từ tọa độ GPS'),
+                subtitle: const Text('Nhập tọa độ để tìm địa chỉ'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _findAddressFromCoordinates(isStartPoint: isStartPoint);
+                },
+              ),
+
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Option 1: Use current GPS location
+  Future<void> _useCurrentGPSLocation({required bool isStartPoint}) async {
+    try {
+      final position = await LocationService.getCurrentPosition(context: context);
+
+      if (position != null) {
+        // Try to get address from VietMap Reverse Geocoding
+        final address = await VietMapService.getAddressFromCoordinates(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+
+        setState(() {
+          if (isStartPoint) {
+            _startPointController.text = address;
+            _selectedStart = PlaceDetails(
+              display: address,
+              name: address,
+              address: address,
+              lat: position.latitude,
+              lng: position.longitude,
+            );
+            _latitude = position.latitude;
+            _longitude = position.longitude;
+          } else {
+            _endPointController.text = address;
+            _selectedEnd = PlaceDetails(
+              display: address,
+              name: address,
+              address: address,
+              lat: position.latitude,
+              lng: position.longitude,
+            );
+          }
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('GPS location set: $address'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        // Auto-calculate route if both points are selected
+        if (_selectedStart != null && _selectedEnd != null) {
+          _calculateRouteDistance();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error getting GPS location: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Option 2: Enter custom location name
+  Future<void> _enterCustomLocationName({required bool isStartPoint}) async {
+    final controller = isStartPoint ? _startPointController : _endPointController;
+    final textController = TextEditingController(text: controller.text);
+
+    final customName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isStartPoint ? 'Nhập tên điểm bắt đầu' : 'Nhập tên điểm kết thúc'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Vị trí không có trên bản đồ? Hãy tự đặt tên!',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: textController,
+              decoration: InputDecoration(
+                labelText: 'Tên địa điểm',
+                hintText: 'VD: Đỉnh núi Ba Vì, Thác Đá Thiên',
+                border: const OutlineInputBorder(),
+                prefixIcon: Icon(
+                  isStartPoint ? Icons.location_on : Icons.location_on,
+                  color: isStartPoint ? Colors.green : Colors.red,
+                ),
+              ),
+              autofocus: true,
+              maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Lưu ý: Sẽ không tính được khoảng cách tự động',
+                      style: TextStyle(fontSize: 11, color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (textController.text.isNotEmpty) {
+                Navigator.pop(context, textController.text);
+              }
+            },
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    );
+
+    if (customName != null && customName.isNotEmpty) {
+      setState(() {
+        if (isStartPoint) {
+          _startPointController.text = customName;
+          _selectedStart = null; // Clear selected place
+        } else {
+          _endPointController.text = customName;
+          _selectedEnd = null; // Clear selected place
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã đặt tên: $customName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  // Option 3: Find address from GPS coordinates
+  Future<void> _findAddressFromCoordinates({required bool isStartPoint}) async {
+    final latController = TextEditingController();
+    final lngController = TextEditingController();
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nhập tọa độ GPS'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Nhập tọa độ để tìm địa chỉ:',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: latController,
+              decoration: const InputDecoration(
+                labelText: 'Latitude (vĩ độ)',
+                hintText: 'VD: 21.028511',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.gps_fixed),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: lngController,
+              decoration: const InputDecoration(
+                labelText: 'Longitude (kinh độ)',
+                hintText: 'VD: 105.804817',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.gps_fixed),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final lat = double.tryParse(latController.text);
+              final lng = double.tryParse(lngController.text);
+
+              if (lat != null && lng != null) {
+                Navigator.pop(context, {'lat': lat, 'lng': lng});
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tọa độ không hợp lệ'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Tìm địa chỉ'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      final lat = result['lat'] as double;
+      final lng = result['lng'] as double;
+
+      // Show loading
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                SizedBox(width: 12),
+                Text('Đang tìm địa chỉ...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      try {
+        final address = await VietMapService.getAddressFromCoordinates(
+          latitude: lat,
+          longitude: lng,
+        );
+
+        setState(() {
+          if (isStartPoint) {
+            _startPointController.text = address;
+            _selectedStart = PlaceDetails(
+              display: address,
+              name: address,
+              address: address,
+              lat: lat,
+              lng: lng,
+            );
+            _latitude = lat;
+            _longitude = lng;
+          } else {
+            _endPointController.text = address;
+            _selectedEnd = PlaceDetails(
+              display: address,
+              name: address,
+              address: address,
+              lat: lat,
+              lng: lng,
+            );
+          }
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tìm thấy: $address'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        // Auto-calculate route if both points are selected
+        if (_selectedStart != null && _selectedEnd != null) {
+          _calculateRouteDistance();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi tìm địa chỉ: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _saveHike() async {
@@ -536,6 +925,30 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
               ),
               onChanged: _searchStartLocation,
             ),
+
+            // Helper text for location not found
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => _showLocationNotFoundOptions(isStartPoint: true),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline, size: 14, color: Colors.blue[700]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Không tìm thấy địa chỉ? Bấm vào đây',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             if (_startSuggestions.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
@@ -619,6 +1032,30 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
               ),
               onChanged: _searchEndLocation,
             ),
+
+            // Helper text for location not found
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => _showLocationNotFoundOptions(isStartPoint: false),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline, size: 14, color: Colors.blue[700]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Không tìm thấy địa chỉ? Bấm vào đây',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             if (_endSuggestions.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
@@ -766,7 +1203,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
 
             // Difficulty (Required)
             DropdownButtonFormField<String>(
-              value: _difficulty,
+              initialValue: _difficulty,
               decoration: const InputDecoration(
                 labelText: 'Difficulty Level *',
                 border: OutlineInputBorder(),
