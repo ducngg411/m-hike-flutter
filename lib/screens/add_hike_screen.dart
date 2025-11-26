@@ -768,9 +768,9 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
               ],
               _buildConfirmationRow('Name', hike.name),
               _buildConfirmationRow('Location', hike.location),
-              // THÊM coordinates trong confirmation
-              if (hike.hasCoordinates)
-                _buildConfirmationRow('Coordinates', hike.coordinatesString),
+              // // THÊM coordinates trong confirmation
+              // if (hike.hasCoordinates)
+              //   _buildConfirmationRow('Coordinates', hike.coordinatesString),
               _buildConfirmationRow('Date', hike.date),
               _buildConfirmationRow('Parking', hike.parkingAvailable ? 'Yes' : 'No'),
               _buildConfirmationRow('Length', '${hike.length} km'),
@@ -937,11 +937,11 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                     Icon(Icons.help_outline, size: 14, color: Colors.blue[700]),
                     const SizedBox(width: 4),
                     Text(
-                      'Không tìm thấy địa chỉ? Bấm vào đây',
+                      'Can’t find the address? Tap here',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue[700],
-                        decoration: TextDecoration.underline,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],
@@ -1044,11 +1044,11 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                     Icon(Icons.help_outline, size: 14, color: Colors.blue[700]),
                     const SizedBox(width: 4),
                     Text(
-                      'Không tìm thấy địa chỉ? Bấm vào đây',
+                      'Can’t find the address? Tap here',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue[700],
-                        decoration: TextDecoration.underline,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],

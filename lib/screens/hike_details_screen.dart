@@ -11,7 +11,6 @@ import '../widgets/image_preview_widget.dart';
 import '../services/location_service.dart';
 import '../services/share_service.dart';
 import '../services/maps_service.dart';
-import '../services/vietmap_service.dart';
 
 
 class HikeDetailsScreen extends StatefulWidget {
@@ -45,171 +44,6 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
     });
   }
 
-  // Fetch address from GPS coordinates using VietMap Reverse Geocoding
-  Future<void> _fetchAddressFromGPS() async {
-    if (!_currentHike.hasCoordinates) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final address = await VietMapService.getAddressFromCoordinates(
-        latitude: _currentHike.latitude!,
-        longitude: _currentHike.longitude!,
-      );
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.location_on, color: Colors.green),
-                SizedBox(width: 8),
-                Text('Address from GPS'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'GPS Coordinates:',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _currentHike.coordinatesString,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Found Address:',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  address,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  // Update location with found address
-                  final updatedHike = _currentHike.copyWith(
-                    location: address,
-                  );
-                  await DatabaseHelper.instance.updateHike(updatedHike);
-                  setState(() => _currentHike = updatedHike);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Location updated with address from GPS')),
-                    );
-                  }
-                },
-                child: const Text('Use This Address'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error getting address: $e')),
-        );
-      }
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  // Allow user to add custom location name
-  Future<void> _addCustomLocationName() async {
-    final controller = TextEditingController(text: _currentHike.location);
-
-    final customName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Location Name'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_currentHike.hasCoordinates) ...[
-              Text(
-                'GPS Coordinates:',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _currentHike.coordinatesString,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  color: Colors.green,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Location Name',
-                hintText: 'e.g., Hidden Valley Trail, Ba Vi Mountain',
-                border: OutlineInputBorder(),
-                helperText: 'Give this location a memorable name',
-              ),
-              autofocus: true,
-              maxLines: 2,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                Navigator.pop(context, controller.text);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    if (customName != null && customName.isNotEmpty) {
-      final updatedHike = _currentHike.copyWith(location: customName);
-      await DatabaseHelper.instance.updateHike(updatedHike);
-      setState(() => _currentHike = updatedHike);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location name updated')),
-        );
-      }
-    }
-  }
 
   Future<void> _editHike() async {
     await Navigator.push(
@@ -370,108 +204,6 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
                         const Divider(),
                         _buildDetailRow(Icons.title, 'Hike Name', _currentHike.name),
                         _buildDetailRow(Icons.location_on, 'Location', _currentHike.location),
-
-                        // THÊM GPS coordinates với copy button
-                        if (_currentHike.hasCoordinates) ...[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.gps_fixed, size: 20, color: Colors.green),
-                                const SizedBox(width: 12),
-                                const SizedBox(
-                                  width: 100,
-                                  child: Text(
-                                    'GPS:',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => _copyCoordinates(
-                                      _currentHike.latitude!,
-                                      _currentHike.longitude!,
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green[50],
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: Colors.green[200]!),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              _currentHike.coordinatesString,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontFamily: 'monospace',
-                                              ),
-                                            ),
-                                          ),
-                                          const Icon(
-                                            Icons.copy,
-                                            size: 14,
-                                            color: Colors.green,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Action buttons for GPS location
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const SizedBox(width: 32),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _isLoading ? null : _fetchAddressFromGPS,
-                                  icon: _isLoading
-                                      ? const SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                      : const Icon(Icons.search, size: 16),
-                                  label: const Text(
-                                    'Get Address',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.blue,
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _addCustomLocationName,
-                                  icon: const Icon(Icons.edit_location_alt, size: 16),
-                                  label: const Text(
-                                    'Edit Name',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.green,
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-
                         _buildDetailRow(Icons.calendar_today, 'Date', _currentHike.date),
                         _buildDetailRow(
                           Icons.local_parking,
@@ -619,8 +351,8 @@ class _HikeDetailsScreenState extends State<HikeDetailsScreen> {
             // THÊM GPS badge nếu có coordinates
             if (_currentHike.hasCoordinates)
               Positioned(
-                top: 60,
-                right: 16,
+                bottom: 15,
+                left: 16,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
