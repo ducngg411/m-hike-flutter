@@ -12,8 +12,8 @@ class Hike {
   final String? imagePath; // added
   final double? latitude; // added
   final double? longitude; // added
-  final String? startPlaceName; // Tên điểm bắt đầu
-  final String? endPlaceName; // Tên điểm kết thúc
+  final String? startPlaceName; // Starting place name
+  final String? endPlaceName; // Ending place name
 
   Hike({
     this.id,
@@ -109,7 +109,7 @@ class Hike {
     );
   }
 
-  // Kiểm tra xem có thông tin route không (có cả start và end place names)
+  // Check if route info is available (both start and end place names present)
   bool get hasRouteInfo {
     return startPlaceName != null && startPlaceName!.isNotEmpty &&
            endPlaceName != null && endPlaceName!.isNotEmpty;

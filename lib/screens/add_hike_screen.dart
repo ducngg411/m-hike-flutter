@@ -300,7 +300,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
-                        'Không tìm thấy địa chỉ?',
+                        'Address not found?',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -321,8 +321,8 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                   backgroundColor: Colors.green,
                   child: Icon(Icons.my_location, color: Colors.white),
                 ),
-                title: const Text('Dùng vị trí GPS hiện tại'),
-                subtitle: const Text('Lấy tọa độ từ thiết bị của bạn'),
+                title: const Text('Use current GPS location'),
+                subtitle: const Text('Get coordinates from your device'),
                 onTap: () async {
                   Navigator.pop(context);
                   await _useCurrentGPSLocation(isStartPoint: isStartPoint);
@@ -335,8 +335,8 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                   backgroundColor: Colors.blue,
                   child: Icon(Icons.edit_location_alt, color: Colors.white),
                 ),
-                title: const Text('Nhập tên địa điểm tùy chỉnh'),
-                subtitle: const Text('Tự đặt tên cho địa điểm'),
+                title: const Text('Enter custom place name'),
+                subtitle: const Text('Manually name the place'),
                 onTap: () async {
                   Navigator.pop(context);
                   await _enterCustomLocationName(isStartPoint: isStartPoint);
@@ -349,8 +349,8 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                   backgroundColor: Colors.orange,
                   child: Icon(Icons.location_searching, color: Colors.white),
                 ),
-                title: const Text('Tìm địa chỉ từ tọa độ GPS'),
-                subtitle: const Text('Nhập tọa độ để tìm địa chỉ'),
+                title: const Text('Find address from GPS coordinates'),
+                subtitle: const Text('Enter coordinates to find address'),
                 onTap: () async {
                   Navigator.pop(context);
                   await _findAddressFromCoordinates(isStartPoint: isStartPoint);
@@ -435,21 +435,21 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
     final customName = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isStartPoint ? 'Nhập tên điểm bắt đầu' : 'Nhập tên điểm kết thúc'),
+        title: Text(isStartPoint ? 'Enter start point name' : 'Enter end point name'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Vị trí không có trên bản đồ? Hãy tự đặt tên!',
+              'Location not on the map? Give it a name!',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: textController,
               decoration: InputDecoration(
-                labelText: 'Tên địa điểm',
-                hintText: 'VD: Đỉnh núi Ba Vì, Thác Đá Thiên',
+                labelText: 'Place name',
+                hintText: 'e.g., Ba Vi Peak, Da Thien Waterfall',
                 border: const OutlineInputBorder(),
                 prefixIcon: Icon(
                   isStartPoint ? Icons.location_on : Icons.location_on,
@@ -472,7 +472,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Lưu ý: Sẽ không tính được khoảng cách tự động',
+                      'Note: Distance cannot be calculated automatically',
                       style: TextStyle(fontSize: 11, color: Colors.blue),
                     ),
                   ),
@@ -484,7 +484,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -492,7 +492,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                 Navigator.pop(context, textController.text);
               }
             },
-            child: const Text('Xác nhận'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -512,7 +512,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã đặt tên: $customName'),
+            content: Text('Custom name set: $customName'),
             backgroundColor: Colors.green,
           ),
         );
@@ -528,21 +528,21 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nhập tọa độ GPS'),
+        title: const Text('Enter GPS coordinates'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Nhập tọa độ để tìm địa chỉ:',
+              'Enter coordinates to find the address:',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: latController,
               decoration: const InputDecoration(
-                labelText: 'Latitude (vĩ độ)',
-                hintText: 'VD: 21.028511',
+                labelText: 'Latitude',
+                hintText: 'e.g., 21.028511',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.gps_fixed),
               ),
@@ -552,8 +552,8 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
             TextField(
               controller: lngController,
               decoration: const InputDecoration(
-                labelText: 'Longitude (kinh độ)',
-                hintText: 'VD: 105.804817',
+                labelText: 'Longitude',
+                hintText: 'e.g., 105.804817',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.gps_fixed),
               ),
@@ -564,7 +564,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -576,13 +576,13 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Tọa độ không hợp lệ'),
+                    content: Text('Invalid coordinates'),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
-            child: const Text('Tìm địa chỉ'),
+            child: const Text('Find address'),
           ),
         ],
       ),
@@ -604,7 +604,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 ),
                 SizedBox(width: 12),
-                Text('Đang tìm địa chỉ...'),
+                Text('Finding address...'),
               ],
             ),
             duration: Duration(seconds: 2),
@@ -645,7 +645,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Tìm thấy: $address'),
+              content: Text('Found: $address'),
               backgroundColor: Colors.green,
             ),
           );
@@ -659,7 +659,7 @@ class _AddHikeScreenState extends State<AddHikeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Lỗi tìm địa chỉ: $e'),
+              content: Text('Error finding address: $e'),
               backgroundColor: Colors.red,
             ),
           );

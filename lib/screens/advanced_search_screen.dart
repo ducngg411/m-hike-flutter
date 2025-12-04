@@ -183,6 +183,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
           // Search Filters
           if (_showFilters)
             Expanded(
+              flex: _hasSearched ? 1 : 1,
               child: Form(
                 key: _formKey,
                 child: ListView(
@@ -432,9 +433,8 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
             ),
 
           // Search Results
-          if (!_showFilters || _hasSearched)
+          if (_hasSearched && !_showFilters)
             Expanded(
-              flex: _showFilters ? 0 : 1,
               child: _buildSearchResults(),
             ),
         ],

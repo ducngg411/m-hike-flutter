@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/hike.dart';
 import 'hike_details_screen.dart';
-import 'advanced_search_screen.dart'; // Thêm import
+import 'advanced_search_screen.dart'; // Added import
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -60,7 +60,7 @@ class _SearchScreenState extends State<SearchScreen> {
         title: const Text('Search Hikes'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          // Thêm nút Advanced Search
+          // Advanced Search button
           IconButton(
             icon: const Icon(Icons.tune),
             onPressed: () {
@@ -116,7 +116,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Thêm hint cho Advanced Search
+                // Hint for Advanced Search
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
